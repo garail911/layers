@@ -87,15 +87,11 @@ public class UserServiceDefaultImpl implements UserService {
     if (entity.isRemoved()) {
       throw new UsernameNotExistsException(model.getLogin());
     }
-    if (!entity.getSecret().equals(model.getSecret())) {
+    if (!model.getSecret().equals(entity.getSecret())) {
       throw new SecretInvalidException();
     }
-
-     new ResetModel(
-             model.getLogin(),
-             model.getNewPassword(),
-             model.getSecret()
-     );
+    entity.setPassword(model.getNewPassword());
+    repository.save(entity);
 
     return new UserModel(
             entity.getId(),
@@ -110,14 +106,14 @@ public class UserServiceDefaultImpl implements UserService {
   @Override
   public boolean remove(RemovalModel model) {
 
-    List<UserRepository> repositories = new ArrayList<>();
+    UserEntity entity = repository
+            .findByLogin(model.getLogin())
+            .orElseThrow(() -> new UsernameNotExistsException(model.getLogin()));
 
-    for (int i = 0; i < repositories.size(); i++) {
-      if (repositories.remove(i).equals(model)) {
-        repositories.remove(i);
-        return true;
-      }
+    if (entity.isRemoved()) {
+      throw new UsernameNotExistsException(model.getLogin());
     }
-    return false;
+
+    return repository.removeById(entity.getId());
   }
 }

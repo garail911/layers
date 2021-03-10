@@ -35,12 +35,10 @@ public class UserRepositoryInMemoryImpl implements UserRepository {
   @Override
   public boolean removeById(Long id) {
     // FIXME: мы не хотели так-то удалять юзера
-    for (Long userId : idToEntity.keySet()) {
-      if (idToEntity.containsKey(userId)) {
-        return true;
-      }
-    }
-    return idToEntity.remove(id) != null;
+    idToEntity.get(id).setRemoved(true);
+    return idToEntity.get(id).isRemoved();
+
+
   }
 
   @Override
