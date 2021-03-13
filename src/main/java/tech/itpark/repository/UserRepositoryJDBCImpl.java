@@ -81,7 +81,9 @@ public class UserRepositoryJDBCImpl implements UserRepository {
     public Optional<UserEntity> findById(Long aLong) {
         try (
 
-                final PreparedStatement stmt = connection.prepareStatement("SELECT id, login, password, name, secret, roles, EXTRACT(EPOCH FROM created) created, remowed FROM id WHERE id = ?");
+                final PreparedStatement stmt = connection.prepareStatement(
+                        "SELECT id, login, password, name, secret, roles, EXTRACT(EPOCH FROM created) created, remowed FROM id WHERE id = ?"
+                );
 
         ) {
             stmt.setLong(1, aLong);
@@ -112,7 +114,7 @@ public class UserRepositoryJDBCImpl implements UserRepository {
                 stmt.setString(++index, entity.getPassword());
                 stmt.setString(++index, entity.getName());
                 stmt.setString(++index, entity.getSecret());
-//                stmt.setString(++index, entity.getRoles()));
+                stmt.setArray(index++, connection.createArrayOf("TEXT", entity.getRoles().toArray()));
                 stmt.setBoolean(++index, entity.isRemoved());
                 stmt.setLong(++index, entity.getCreated());
 
@@ -121,7 +123,7 @@ public class UserRepositoryJDBCImpl implements UserRepository {
                 try (ResultSet keys = stmt.getGeneratedKeys();) {
                     if (keys.next()) {
                         int id = keys.getInt(1);
-                        return findById();
+                        return entity;
                     }
                     throw new DataAccessException("No keys generated");
                 }
@@ -140,13 +142,13 @@ public class UserRepositoryJDBCImpl implements UserRepository {
             stmt.setString(++index, entity.getPassword());
             stmt.setString(++index, entity.getName());
             stmt.setString(++index, entity.getSecret());
-//                stmt.setString(++index, entity.getRoles()));
+            stmt.setArray(index++, connection.createArrayOf("TEXT", entity.getRoles().toArray()));
             stmt.setBoolean(++index, entity.isRemoved());
             stmt.setLong(++index, entity.getCreated());
 
             stmt.execute();
 
-            return findById(entity.getId());
+            return entity;
         } catch (SQLException e) {
             throw new DataAccessException(e);
         }
@@ -168,11 +170,40 @@ public class UserRepositoryJDBCImpl implements UserRepository {
 
     @Override
     public boolean existsByLogin(String login) {
+        try (
+                final PreparedStatement stmt = connection.prepareStatement(
+                        "SELECT id, login, password, name, secret, roles, remowed, EXTRACT(EPOCH FROM created) created FROM users WHERE login =?"
+                );
+        ) {
+            stmt.setString(1, login);
+            try (final ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return true;
+                }
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException(e);
+        }
         return false;
     }
 
     @Override
     public Optional<UserEntity> findByLogin(String login) {
+        try (
+                final PreparedStatement stmt = connection.prepareStatement(
+                        "SELECT id, login, password, name, secret, roles, remowed, EXTRACT(EPOCH FROM created)created FROM users WHERE login = ?"
+                );
+                ){
+            stmt.setString(1,login);
+            try (final ResultSet rs = stmt.executeQuery()){
+                while (rs.next()) {
+                    return Optional.ofNullable(mapper.map(rs));
+                }
+            }
+
+        }catch (SQLException e) {
+            throw new DataAccessException(e);
+        }
         return Optional.empty();
     }
 }
