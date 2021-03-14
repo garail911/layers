@@ -204,7 +204,7 @@ public class UserRepositoryJDBCImpl implements UserRepository {
         }catch (SQLException e) {
             throw new DataAccessException(e);
         }
-        return Optional.empty();
+        return Optional.of(null);
     }
 }
 
